@@ -3,14 +3,14 @@ import cv2
 from collections import Counter
 class Img():
     def __init__(self, img_path):
-        self.init_image = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+        self.init_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         
     def set_binary_img(self, threshold=180):
         """
         이미지를 받아서 임계치를 기준으로 0, 255로 나눠주며
         np.uint8타입으로 바꿔줌
         """
-        self.binary_img = np.where(self.init_image > threshold,  0,255)
+        self.binary_img = np.where(self.init_img > threshold,  0,255)
         self.binary_img = np.array(self.binary_img, dtype=np.uint8)
         return self.binary_img
     def remove_staff(self):
@@ -87,25 +87,6 @@ class Img():
                 temp = []
         self.stafflump = staff_loc
         return 
-    def show(self, img):
-        """인자로 받은 이미지를 디스플레이하는 함수
-        show실행중에 q를 누르면 종료되고
-        show실행중에 s를 누르면 img.jpg에 저장된다.
-        """
-        winname = "window"
-        width = int(img.shape[0]/3)
-        height =  int(img.shape[1]/2)
-        cv2.namedWindow(winname, flags=cv2.WINDOW_NORMAL)
-        cv2.imshow(winname , img)
-        cv2.resizeWindow(winname, width, height )
-        while True:
-            if cv2.waitKey(delay=None) == ord('q'): 
-                break
-            if cv2.waitKey(delay=None) == ord('s'):
-                cv2.imwrite("img.jpg",img)
-        cv2.destroyWindow(winname)
-        print("디스플레이 종료")
-        return 
     def fill_defect(self):
         """remove_staff로인해 생긴 빈공간을 모폴로지 closed연산으로 깔끔하게 메꾸는 함수"""
         self.fill_defect_img = self.staff_removed_img
@@ -123,6 +104,93 @@ class Img():
         self.object_stats = label_info[2]
         self.object_centroids = label_info[3]
         return 
+    def show(self, img):
+        """인자로 받은 이미지를 디스플레이하는 함수
+        show 실행 중에 q를 누르면 종료되고
+        show 실행 중에 s를 누르면 img.jpg에 저장된다.
+        """
+        winname = "window"
+        width = int(img.shape[0] / 3)
+        height = int(img.shape[1] / 2)
+        cv2.namedWindow(winname, flags=cv2.WINDOW_NORMAL)
+        cv2.imshow(winname, img)
+        cv2.resizeWindow(winname, width, height)
+        
+        # 기본 바운딩 박스 픽셀과 초기 바운딩 박스 굵기 설정
+        pixel = 1
+        box_thickness = 1
+        flag = 1
+        while True:
+            if flag==0:
+                break
+            cv2.imshow(winname, img)
+            key = cv2.waitKey(delay=None)
+            
+            if key == ord('q'):
+                break
+            elif key == ord('s'):
+                cv2.imwrite("temp_img.jpg", img)
+            elif key == ord('c'):
+                try:
+                    bin_img = img.copy()
+                    # 바운딩 박스 그리기
+                    for stat in self.object_stats:
+                        x, y, width, height = stat[0], stat[1], stat[2], stat[3]
+                        
+                        cv2.rectangle(bin_img, (x - pixel, y - pixel), (x + width + pixel, y + height + pixel),
+                                    (255, 255, 255), box_thickness)
+                    
+                    cv2.imshow(winname, bin_img)
+                    # 바운딩 박스 픽셀과 굵기를 조절하는 루프
+                    while True:
+                        key = cv2.waitKey(delay=None)
+                        
+                        if key == ord('c'):
+                            break
+                        elif ord('1') <= key <= ord('9'):
+                            # 숫자 1부터 9까지를 입력하여 바운딩 박스의 굵기를 조절
+                            box_thickness = int(chr(key))
+                            bin_img = img.copy()
+                            
+                            # 바운딩 박스 그리기
+                            for stat in self.object_stats:
+                                x, y, width, height = stat[0], stat[1], stat[2], stat[3]
+                                
+                                cv2.rectangle(bin_img, (x - pixel, y - pixel), (x + width + pixel, y + height + pixel),
+                                            (255, 255, 255), box_thickness)
+                            
+                            cv2.imshow(winname, bin_img)
+                        elif key==ord('q'):
+                            flag = 0
+                            break
+                        elif key == ord('s'):
+                            cv2.imwrite("temp_img.jpg", bin_img)
+                except:
+                    pass
+        cv2.destroyWindow(winname)
+        print("디스플레이 종료")
+        return
+    # def show(self, img):
+    #     """인자로 받은 이미지를 디스플레이하는 함수
+    #     show실행중에 q를 누르면 종료되고
+    #     show실행중에 s를 누르면 img.jpg에 저장된다.
+    #     """
+    #     winname = "window"
+    #     width = int(img.shape[0]/3)
+    #     height =  int(img.shape[1]/2)
+    #     cv2.namedWindow(winname, flags=cv2.WINDOW_NORMAL)
+    #     cv2.imshow(winname , img)
+    #     cv2.resizeWindow(winname, width, height )
+    #     while True:
+    #         if cv2.waitKey(delay=None) == ord('q'): 
+    #             break
+    #         if cv2.waitKey(delay=None) == ord('s'):
+    #             cv2.imwrite("img.jpg",img)
+    #         if cv2.waitKey(delay=None) == ord('c'):
+    #             """코드추가할 부분"""
+    #     cv2.destroyWindow(winname)
+    #     print("디스플레이 종료")
+    #     return 
     def show_check_stats(self, bin_img, pixel = 1):
         """
         바이너리 이미지를 인자로 받는 함수
