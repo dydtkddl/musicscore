@@ -1,0 +1,1 @@
+from ImgClass import Img

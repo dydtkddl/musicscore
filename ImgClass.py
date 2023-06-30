@@ -1,10 +1,26 @@
 import numpy as np
 import cv2
 from collections import Counter
+class Staff():
+    def __init__(self, locations=None, lumps = None):
+        self.locations = locations
+        self.lumps = lumps 
+    def set_locations(self, locations):
+        self.locations = locations 
+    def set_lumps(self, lumps):
+        self.lumps = lumps
+class Object():
+    def __init__(self, stats=None, centroids=None):
+        self.stats = stats 
+        self.centroids = centroids
+    def set_stats(self, stats):
+        self.stas = stats 
+    def set_centroids(self, centroids):
+        self.centroids = centroids 
 class Img():
     def __init__(self, img_path):
         self.init_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-        
+        print(self.init_img)
     def set_binary_img(self, threshold=180):
         """
         이미지를 받아서 임계치를 기준으로 0, 255로 나눠주며
@@ -57,7 +73,10 @@ class Img():
                         row_location_ls.append(temp_list)
                         temp_list =[row]
                         row_location.append(row)
-        self.staffs = row_location_ls
+        try:
+            self.staffs.locations = row_location_ls
+        except:
+            self.staffs = Staff(locations = row_location_ls)
         return 
     def set_stafflump(self):
         """
@@ -67,7 +86,7 @@ class Img():
         self.stafflump에 딕셔너리형태로 저장
         키값은 staff_Lump + 숫자 형태로 저장됌
         """
-        differences = np.diff(self.staffs, axis=0).flatten()
+        differences = np.diff(self.staffs.locations, axis=0).flatten()
         result = differences[1::2]
         print(result)
         counter = Counter(result)
@@ -82,10 +101,13 @@ class Img():
             else:
                 start = temp[0]
                 final = temp[-1]
-                staff_loc["staff_Lump%s"%count] = self.staffs[start:final+2]
+                staff_loc["staff_Lump%s"%count] = self.staffs.locations[start:final+2]
                 count +=1
                 temp = []
-        self.stafflump = staff_loc
+        try:
+            self.staffs.lumps = staff_loc 
+        except:
+            self.staffs = Staff(lumps = staff_loc)
         return 
     def fill_defect(self):
         """remove_staff로인해 생긴 빈공간을 모폴로지 closed연산으로 깔끔하게 메꾸는 함수"""
@@ -101,8 +123,11 @@ class Img():
             • centroids: 각 객체의 무게 중심 위치 정보를 담은 행렬 numpy.ndarray. shape=(N, 2), dtype=numpy.float64.
         """
         label_info = cv2.connectedComponentsWithStats(bin_img, 4)
-        self.object_stats = label_info[2]
-        self.object_centroids = label_info[3]
+        try:
+            self.objects.stats = label_info[2]
+            self.objects.centroids = label_info[3]
+        except:
+            self.objects = Object(stats = label_info[2], centroids = label_info[3])
         return 
     def show(self, img):
         """인자로 받은 이미지를 디스플레이하는 함수
@@ -134,7 +159,7 @@ class Img():
                 try:
                     bin_img = img.copy()
                     # 바운딩 박스 그리기
-                    for stat in self.object_stats:
+                    for stat in self.objects.stats:
                         x, y, width, height = stat[0], stat[1], stat[2], stat[3]
                         
                         cv2.rectangle(bin_img, (x - pixel, y - pixel), (x + width + pixel, y + height + pixel),
@@ -153,7 +178,7 @@ class Img():
                             bin_img = img.copy()
                             
                             # 바운딩 박스 그리기
-                            for stat in self.object_stats:
+                            for stat in self.objects.stats:
                                 x, y, width, height = stat[0], stat[1], stat[2], stat[3]
                                 
                                 cv2.rectangle(bin_img, (x - pixel, y - pixel), (x + width + pixel, y + height + pixel),
