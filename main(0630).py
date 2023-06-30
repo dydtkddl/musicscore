@@ -23,7 +23,7 @@ print(imgobject.staffs.lumps)
 
 imgobject.fill_defect()
 imgobject.detect_connected_objects(imgobject.fill_defect_img)
-
+imgobject.show(imgobject.fill_defect_img)
 
 """
 매커니즘
